@@ -7,10 +7,10 @@ const handleSignup = async (signupData) => {
     console.error('Signup error:', error);
     if (error.response) {
       // Handle specific error messages from backend
-      alert(error.response.data.message || 'Signup failed');
+      alert(error.response.data.message || 'Signup failed. Please try again.');
     } else if (error.request) {
       // Network error
-      alert('Network error. Please check your connection and try again.');
+      alert('Network error. Please check your internet connection.');
     } else {
       alert('An error occurred. Please try again.');
     }
