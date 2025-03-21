@@ -14,12 +14,7 @@ const server = http.createServer(app);
 initializeSocket(server);
 
 // Middleware
-app.use(cors({
-  origin: '*',  // Temporarily allow all origins for testing
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 app.use(express.json());
 
 // Import Routes
@@ -35,11 +30,6 @@ app.use("/api/mentors", mentorRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/connections", connectionRoutes);
-
-// Add this route to test API connectivity
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is connected!' });
-});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
