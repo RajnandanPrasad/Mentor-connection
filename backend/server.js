@@ -15,7 +15,7 @@ initializeSocket(server);
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://your-frontend.vercel.app'], // Add both local and production URLs
+  origin: ['http://localhost:3000', 'https://your-frontend-vercel-url.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -36,9 +36,9 @@ app.use("/api/chats", chatRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/connections", connectionRoutes);
 
-// Add this near your other routes
+// Add this route to test API connectivity
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working!' });
+  res.json({ message: 'Backend is connected!' });
 });
 
 // Connect to MongoDB
