@@ -8,6 +8,9 @@ const router = express.Router();
 // ✅ Signup Route
 router.post("/signup", async (req, res) => {
   try {
+    // Add console.log to debug
+    console.log('Signup request received:', req.body);
+    
     const { name, email, password, role } = req.body;
 
     // Basic validation
@@ -100,10 +103,10 @@ router.post("/signup", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Signup Error:", error);
+    console.error('Signup error:', error);
     res.status(500).json({ 
-      message: "Server error during signup", 
-      error: error.message 
+      success: false, 
+      message: error.message || 'Error creating user' 
     });
   }
 });
