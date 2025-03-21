@@ -15,7 +15,7 @@ initializeSocket(server);
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://your-frontend-vercel-url.vercel.app'],
+  origin: '*',  // Temporarily allow all origins for testing
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']

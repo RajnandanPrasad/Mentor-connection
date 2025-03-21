@@ -8,8 +8,8 @@ const router = express.Router();
 // ✅ Signup Route
 router.post("/signup", async (req, res) => {
   try {
-    // Add console.log to debug
-    console.log('Signup request received:', req.body);
+    // Add debugging logs
+    console.log('Received signup request:', req.body);
     
     const { name, email, password, role } = req.body;
 
@@ -91,7 +91,8 @@ router.post("/signup", async (req, res) => {
 
     // Return success with token and user data
     res.status(201).json({
-      message: "User registered successfully!",
+      success: true,
+      message: 'User created successfully',
       token,
       user: {
         id: newUser._id,
@@ -104,9 +105,9 @@ router.post("/signup", async (req, res) => {
 
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message || 'Error creating user' 
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error during signup'
     });
   }
 });
