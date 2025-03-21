@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
+  baseURL: 'https://mentor-connect-og82.onrender.com',  // Hardcode temporarily for testing
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -10,7 +10,8 @@ const API = axios.create({
 
 // Add request interceptor for debugging
 API.interceptors.request.use((config) => {
-  console.log('Making request to:', config.baseURL + config.url);
+  console.log('Request URL:', config.baseURL + config.url);
+  console.log('Request Data:', config.data);
   return config;
 });
 
