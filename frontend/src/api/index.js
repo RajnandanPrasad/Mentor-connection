@@ -1,22 +1,29 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_BACKEND_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   }
 });
 
-// Add error interceptor
+// Add request interceptor for debugging
+API.interceptors.request.use((config) => {
+  console.log('Making request to:', config.baseURL + config.url);
+  return config;
+});
+
+// Add response interceptor for debugging
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error);
-    if (error.response) {
-      console.error('Error data:', error.response.data);
-      console.error('Error status:', error.response.status);
-    }
+    console.error('API Error Details:', {
+      baseURL: error.config?.baseURL,
+      url: error.config?.url,
+      method: error.config?.method,
+      error: error.message
+    });
     return Promise.reject(error);
   }
 );
