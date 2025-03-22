@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const RequestMentorshipModal = ({ isOpen, onClose, onSubmit, mentorName }) => {
@@ -25,9 +25,9 @@ const RequestMentorshipModal = ({ isOpen, onClose, onSubmit, mentorName }) => {
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -35,31 +35,37 @@ const RequestMentorshipModal = ({ isOpen, onClose, onSubmit, mentorName }) => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Request Mentorship from {mentorName}
                 </h3>
+
                 <form onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Message to Mentor
+                    <label
+                      htmlFor="message"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Message
                     </label>
                     <textarea
+                      id="message"
+                      rows="4"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      required
-                      rows="4"
+                      placeholder="Introduce yourself and explain what you're looking to learn..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Introduce yourself and explain why you'd like to be mentored..."
+                      required
                     />
                   </div>
+
                   <div className="flex justify-end space-x-3">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       Send Request
                     </button>

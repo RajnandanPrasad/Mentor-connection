@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,8 +24,7 @@ const Login = () => {
 
     try {
       const response = await axios.post("http://localhost:5000/api/auth/login", formData);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      login(response.data.user, response.data.token);
       
       // Redirect based on role
       if (response.data.user.role === "mentor") {
