@@ -6,9 +6,19 @@ const MentorshipRequest = require("../models/MentorshipRequest");
 const Chat = require("../models/Chat");
 
 // Get all verified mentors
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
-    const { search, title, experienceLevel, rating } = req.query;
+    const { 
+      search, 
+      skills, 
+      experienceRange, 
+      hourlyRate, 
+      availability, 
+      rating,
+      expertise 
+    } = req.query;
+    
+    console.log("Received query parameters:", req.query);
     
     // Base query to find mentors
     let query = {
@@ -24,14 +34,47 @@ router.get("/", async (req, res) => {
       ];
     }
 
-    // Add title filter
-    if (title) {
-      query["mentorProfile.title"] = { $regex: title, $options: "i" };
+    // Add skills filter
+    if (skills) {
+      const skillsArray = skills.split(',').map(skill => skill.trim());
+      query["mentorProfile.skills"] = { $in: skillsArray };
     }
 
-    // Add experience level filter
-    if (experienceLevel) {
-      query["mentorProfile.experienceLevel"] = experienceLevel;
+    // Add experience range filter
+    if (experienceRange) {
+      const [min, max] = experienceRange.split('-').map(Number);
+      query.$or = [
+        // Check experience field
+        {
+          "mentorProfile.experience": {
+            ...(min && { $gte: min.toString() }),
+            ...(max && { $lte: max.toString() })
+          }
+        },
+        // Check experienceLevel field
+        {
+          "mentorProfile.experienceLevel": {
+            $in: ['beginner', 'intermediate', 'expert'].filter(level => {
+              if (min <= 2) return level === 'beginner';
+              if (min <= 5) return level === 'intermediate';
+              return level === 'expert';
+            })
+          }
+        }
+      ];
+    }
+
+    // Add hourly rate filter
+    if (hourlyRate) {
+      const [min, max] = hourlyRate.split('-').map(Number);
+      query["mentorProfile.hourlyRate"] = {};
+      if (min) query["mentorProfile.hourlyRate"].$gte = min;
+      if (max) query["mentorProfile.hourlyRate"].$lte = max;
+    }
+
+    // Add availability filter
+    if (availability === 'true') {
+      query["mentorProfile.availability"] = true;
     }
 
     // Add rating filter
@@ -39,13 +82,23 @@ router.get("/", async (req, res) => {
       query["mentorProfile.rating"] = { $gte: parseFloat(rating) };
     }
 
-    console.log("Mentor search query:", query);
+    // Add expertise filter
+    if (expertise) {
+      query["mentorProfile.expertise"] = { $regex: expertise, $options: "i" };
+    }
+
+    console.log("Final MongoDB query:", JSON.stringify(query, null, 2));
+
+    // First, check if there are any mentors at all
+    const totalMentors = await User.countDocuments({ role: "mentor" });
+    console.log("Total mentors in database:", totalMentors);
 
     const mentors = await User.find(query)
       .select("-password")
       .sort({ "mentorProfile.rating": -1 });
 
-    console.log(`Found ${mentors.length} mentors`);
+    console.log(`Found ${mentors.length} mentors matching query`);
+    console.log("First mentor data:", mentors[0] ? JSON.stringify(mentors[0], null, 2) : "No mentors found");
 
     res.json(mentors);
   } catch (error) {
