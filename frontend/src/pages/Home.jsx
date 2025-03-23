@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -10,18 +10,40 @@ import {
   mentorDomains,
   fallbackImage 
 } from "../assets/imageUrls";
+import introVideo from '../assets/intro video.mp4';
 
 const Home = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [openFaq, setOpenFaq] = useState(null);
   const [imageErrors, setImageErrors] = useState({});
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef(null);
 
   const handleImageError = (imageKey) => {
     setImageErrors(prev => ({
       ...prev,
       [imageKey]: true
     }));
+  };
+
+  const handlePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleMuteUnmute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
   };
 
   const topMentors = [
@@ -189,14 +211,56 @@ const Home = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative"
+              className="relative rounded-3xl overflow-hidden shadow-2xl"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-3xl" />
-              <img
-                src="https://illustrations.popsy.co/white/mentorship.svg"
-                alt="Mentorship Illustration"
-                className="relative rounded-3xl shadow-2xl"
-              />
+              <div className="aspect-w-16 aspect-h-9 relative">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                >
+                  <source src={introVideo} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20" />
+                
+                {/* Video Controls */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-center space-x-4 bg-gradient-to-t from-black/50 to-transparent">
+                  <button
+                    onClick={handlePlayPause}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                  >
+                    {isPlaying ? (
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleMuteUnmute}
+                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                  >
+                    {isMuted ? (
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
@@ -524,10 +588,10 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-50 py-12">
+      <footer className="bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 py-12 border-t border-purple-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-purple-200 max-w-2xl mx-auto">
               Your trusted source to find highly-vetted mentors & industry professionals to move your career ahead.
             </p>
           </div>
@@ -536,7 +600,7 @@ const Home = () => {
               <a
                 key={social.name}
                 href="#"
-                className="text-gray-400 hover:text-blue-600 transition-colors"
+                className="text-purple-400 hover:text-white transition-all duration-300 transform hover:scale-110"
               >
                 <span className="sr-only">{social.name}</span>
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -544,6 +608,11 @@ const Home = () => {
                 </svg>
               </a>
             ))}
+          </div>
+          <div className="mt-8 text-center">
+            <p className="text-purple-300 text-sm">
+              © 2024 MentorConnect. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

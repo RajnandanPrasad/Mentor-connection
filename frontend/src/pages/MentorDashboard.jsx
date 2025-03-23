@@ -67,15 +67,15 @@ const MentorDashboard = () => {
   const fetchMentees = async () => {
     if (!token) {
       console.log('No token available, skipping fetch');
-      return;
-    }
+        return;
+      }
 
-    try {
+      try {
       console.log('Fetching connected mentees...');
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/connections`,
         {
-          headers: {
+          headers: { 
             Authorization: `Bearer ${token}`
           }
         }
@@ -103,14 +103,14 @@ const MentorDashboard = () => {
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/tasks/stats`,
-        {
-          headers: {
+        { 
+          headers: { 
             Authorization: `Bearer ${token}`
           }
         }
       );
       setTaskStats(response.data);
-    } catch (error) {
+        } catch (error) {
       console.error('Error fetching task stats:', error);
       toast.error('Failed to fetch task statistics');
     }
@@ -125,14 +125,14 @@ const MentorDashboard = () => {
     if (activeTab === 'all') return true;
     if (activeTab === 'active') return mentee.status === 'active';
     if (activeTab === 'pending') return mentee.status === 'pending';
-    return true;
+          return true;
   });
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
-      </div>
+        </div>
     );
   }
 
@@ -151,7 +151,7 @@ const MentorDashboard = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Mentor Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Mentor Dashboard</h1>
               <p className="text-gray-600 mt-1">Welcome back, {user.name}</p>
             </div>
             <div className="flex items-center space-x-6">
@@ -182,7 +182,7 @@ const MentorDashboard = () => {
             </div>
           </div>
         </div>
-      </div>
+          </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
@@ -195,18 +195,18 @@ const MentorDashboard = () => {
                 Mentorship Requests
               </h2>
               <MentorshipRequests onRequestUpdate={handleRequestUpdate} />
-            </div>
           </div>
+        </div>
 
           {/* Connected Mentees Section */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold flex items-center">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                   Connected Mentees
                 </h2>
-                <div className="flex space-x-2">
+            <div className="flex space-x-2">
                   <button
                     onClick={() => setActiveTab('all')}
                     className={`px-4 py-2 rounded-lg ${
@@ -217,30 +217,30 @@ const MentorDashboard = () => {
                   >
                     All
                   </button>
-                  <button
-                    onClick={() => setActiveTab('active')}
+              <button
+                onClick={() => setActiveTab('active')}
                     className={`px-4 py-2 rounded-lg ${
-                      activeTab === 'active'
+                  activeTab === 'active'
                         ? 'bg-green-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Active
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('pending')}
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => setActiveTab('pending')}
                     className={`px-4 py-2 rounded-lg ${
-                      activeTab === 'pending'
+                  activeTab === 'pending'
                         ? 'bg-yellow-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Pending
-                  </button>
-                </div>
-              </div>
+                }`}
+              >
+                Pending
+            </button>
+            </div>
+      </div>
 
-              {filteredMentees.length === 0 ? (
+          {filteredMentees.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-400 mb-2">
                     <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,8 +273,8 @@ const MentorDashboard = () => {
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {mentee.status.charAt(0).toUpperCase() + mentee.status.slice(1)}
-                          </span>
-                        </div>
+                            </span>
+                          </div>
                       </div>
 
                       <div className="mt-4">
@@ -286,7 +286,7 @@ const MentorDashboard = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         Connected since: {new Date(mentee.createdAt).toLocaleDateString()}
-                      </div>
+                    </div>
 
                       <div className="mt-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Goals</h4>
@@ -303,17 +303,17 @@ const MentorDashboard = () => {
                       </div>
 
                       <div className="mt-6 flex space-x-3">
-                        <button
-                          onClick={() => {
+                          <button
+                            onClick={() => {
                             setSelectedMentee(mentee);
                             setShowTaskManagement(true);
-                          }}
+                            }}
                           className="bg-purple-100 text-purple-700 py-2 px-4 rounded-lg hover:bg-purple-200 transition duration-200"
-                        >
+                          >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
-                        </button>
+                          </button>
                         <button
                           onClick={() => setChattingWith(mentee)}
                           className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition duration-200"
@@ -324,13 +324,13 @@ const MentorDashboard = () => {
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+              ))}
+            </div>
+          )}
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
       {/* Mentee Profile Modal */}
       {selectedMentee && !showTaskManagement && (
@@ -338,15 +338,15 @@ const MentorDashboard = () => {
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-start mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Mentee Profile</h3>
-              <button
+                  <button
                 onClick={() => setSelectedMentee(null)}
                 className="text-gray-500 hover:text-gray-700"
-              >
+                  >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
-            </div>
+                  </button>
+                </div>
 
             <div className="space-y-6">
               <div className="flex items-center space-x-4">
@@ -413,8 +413,8 @@ const MentorDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+              </div>
+            )}
 
       {/* Task Management Modal */}
       {showTaskManagement && selectedMentee && (
@@ -438,8 +438,8 @@ const MentorDashboard = () => {
             </div>
             <TaskManagement menteeId={selectedMentee.mentee._id} />
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
       {/* Chat Modal */}
       {chattingWith && (
@@ -447,7 +447,7 @@ const MentorDashboard = () => {
           <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
             <Chat mentee={chattingWith} onClose={() => setChattingWith(null)} />
           </div>
-        </div>
+      </div>
       )}
     </div>
   );
