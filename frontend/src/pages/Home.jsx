@@ -10,7 +10,6 @@ import {
   mentorDomains,
   fallbackImage 
 } from "../assets/imageUrls";
-import introVideo from '../assets/intro video.mp4';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -222,7 +221,7 @@ const Home = () => {
                   loop
                   playsInline
                 >
-                  <source src={introVideo} type="video/mp4" />
+                  <source src="/introvideo1.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20" />
