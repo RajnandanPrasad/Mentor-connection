@@ -2,8 +2,54 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { authMiddleware, authorizeRoles } = require("../middleware/authMiddleware");
+const rateLimit = require('express-rate-limit');
+const passwordValidator = require('password-validator');
 
 const router = express.Router();
+
+// Password validation schema
+const passwordSchema = new passwordValidator();
+passwordSchema
+  .is().min(8)                                    // Minimum length 8
+  .is().max(100)                                  // Maximum length 100
+  .has().uppercase()                              // Must have uppercase letters
+  .has().lowercase()                              // Must have lowercase letters
+  .has().digits(2)                                // Must have at least 2 digits
+  .has().not().spaces()                           // Should not have spaces
+  .has().symbols(2);                              // Must have at least 2 special characters
+
+// Rate limiting for login attempts
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // 15 attempts
+  message: 'Too many login attempts, please try again after 15 minutes',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skipSuccessfulRequests: true // Don't count successful requests
+});
+
+// Token verification endpoint
+router.get("/verify-token", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(401).json({ valid: false, message: "User not found" });
+    }
+
+    // Get session ID from request headers
+    const sessionId = req.headers['x-session-id'];
+    
+    // Return user data with session ID
+    res.json({ 
+      valid: true, 
+      user,
+      sessionId // Include session ID in response
+    });
+  } catch (error) {
+    console.error("Token verification error:", error);
+    res.status(401).json({ valid: false, message: "Invalid token" });
+  }
+});
 
 // ✅ Signup Route
 router.post("/signup", async (req, res) => {
@@ -13,6 +59,21 @@ router.post("/signup", async (req, res) => {
     // Basic validation
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Password validation
+    const passwordValidation = passwordSchema.validate(password, { list: true });
+    if (passwordValidation.length > 0) {
+      return res.status(400).json({
+        message: "Password does not meet requirements",
+        errors: passwordValidation
+      });
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
     }
 
     // Check if user already exists
@@ -79,11 +140,11 @@ router.post("/signup", async (req, res) => {
     const newUser = new User(userData);
     await newUser.save();
 
-    // Generate JWT token
+    // Generate JWT token with longer expiration
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" } // Token expires in 7 days
     );
 
     // Return success with token and user data
@@ -108,8 +169,8 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// ✅ Login Route
-router.post("/login", async (req, res) => {
+// ✅ Login Route with rate limiting
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -121,15 +182,19 @@ router.post("/login", async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // Generate JWT
+    // Generate JWT with longer expiration
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" } // Token expires in 7 days
     );
+
+    // Generate session ID
+    const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
     res.json({
       token,
+      sessionId,
       user: {
         id: user._id,
         name: user.name,

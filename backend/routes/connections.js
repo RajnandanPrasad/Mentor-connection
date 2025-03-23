@@ -107,46 +107,72 @@ router.put('/:connectionId', authMiddleware, async (req, res) => {
   }
 });
 
-// Request a connection with a mentor
-router.post('/request/:mentorId', authMiddleware, async (req, res) => {
+// Create a new connection
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { message } = req.body;
+    const { mentee, status, requestMessage } = req.body;
+    
+    console.log('Creating connection with data:', {
+      mentor: req.user._id,
+      mentee,
+      status,
+      requestMessage
+    });
 
-    // Check if there's an existing active connection
+    // Check if connection already exists
     const existingConnection = await Connection.findOne({
-      mentor: req.params.mentorId,
-      mentee: req.user._id,
+      mentor: req.user._id,
+      mentee: mentee,
       status: { $in: ['pending', 'accepted'] }
     });
 
     if (existingConnection) {
+      console.log('Existing connection found:', existingConnection);
       return res.status(400).json({
         message: existingConnection.status === 'pending'
-          ? 'You already have a pending request with this mentor'
-          : 'You are already connected with this mentor'
+          ? 'Connection request is already pending'
+          : 'Connection already exists'
       });
     }
 
+    // Create new connection
     const connection = new Connection({
-      mentor: req.params.mentorId,
-      mentee: req.user._id,
-      requestMessage: message
+      mentor: req.user._id,
+      mentee: mentee,
+      status: status || 'pending',
+      requestMessage
     });
 
     await connection.save();
+    
+    // Populate mentor and mentee details
     await connection.populate('mentor', 'name email mentorProfile');
     await connection.populate('mentee', 'name email');
 
-    // Notify the mentor about the new request
-    const io = getIo();
-    io.to(`user_${req.params.mentorId}`).emit('newConnectionRequest', {
-      connection
-    });
+    console.log('New connection created:', connection);
+
+    // Create a chat for accepted connections
+    if (status === 'accepted') {
+      const existingChat = await Chat.findOne({
+        mentor: req.user._id,
+        mentee: mentee,
+        status: 'active'
+      });
+
+      if (!existingChat) {
+        const newChat = new Chat({
+          mentor: req.user._id,
+          mentee: mentee
+        });
+        await newChat.save();
+        console.log('New chat created:', newChat);
+      }
+    }
 
     res.status(201).json(connection);
   } catch (error) {
-    console.error('Error requesting connection:', error);
-    res.status(500).json({ message: 'Error requesting connection' });
+    console.error('Error creating connection:', error);
+    res.status(500).json({ message: 'Error creating connection', error: error.message });
   }
 });
 

@@ -1,11 +1,11 @@
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 let io;
 
 const initializeSocket = (server) => {
-  io = socketIo(server, {
+  io = new Server(server, {
     cors: {
       origin: "http://localhost:5173", // Your frontend URL
       methods: ["GET", "POST"]
@@ -35,10 +35,13 @@ const initializeSocket = (server) => {
   });
 
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.user.name);
+    console.log('New client connected');
 
-    // Join personal room for direct messages
-    socket.join(`user_${socket.user._id}`);
+    // Join user's personal room
+    socket.on('join', (userId) => {
+      socket.join(`user_${userId}`);
+      console.log(`User ${userId} joined their room`);
+    });
 
     // Join group rooms
     socket.on('joinGroup', (groupId) => {
@@ -83,7 +86,7 @@ const initializeSocket = (server) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.user.name);
+      console.log('Client disconnected');
     });
   });
 
@@ -92,7 +95,7 @@ const initializeSocket = (server) => {
 
 const getIo = () => {
   if (!io) {
-    throw new Error('Socket.io not initialized');
+    throw new Error('Socket.io not initialized!');
   }
   return io;
 };

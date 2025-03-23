@@ -4,6 +4,8 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 const User = require("../models/User");
 const MentorshipRequest = require("../models/MentorshipRequest");
 const Chat = require("../models/Chat");
+const { getIo } = require('../services/socket');
+const Connection = require("../models/Connection");
 
 // Get all verified mentors
 router.get("/", authMiddleware, async (req, res) => {
@@ -140,8 +142,17 @@ router.put("/requests/:requestId", authMiddleware, async (req, res) => {
     request.status = status;
     await request.save();
 
-    // If request is accepted, create a chat
+    // If request is accepted, create a connection and chat
     if (status === 'accepted') {
+      // Create a connection
+      const connection = new Connection({
+        mentor: req.user._id,
+        mentee: request.mentee._id,
+        status: 'active',
+        requestMessage: request.message
+      });
+      await connection.save();
+
       // Check if chat already exists
       const existingChat = await Chat.findOne({
         mentor: req.user._id,
@@ -156,6 +167,15 @@ router.put("/requests/:requestId", authMiddleware, async (req, res) => {
           mentee: request.mentee._id
         });
         await newChat.save();
+      }
+
+      // Notify the mentee about the accepted request
+      const io = getIo();
+      if (io) {
+        io.to(`user_${request.mentee._id}`).emit('requestAccepted', {
+          request,
+          connection
+        });
       }
     }
 
@@ -187,6 +207,17 @@ router.get("/:id", async (req, res) => {
 // Request mentorship (protected route)
 router.post("/:id/request", authMiddleware, async (req, res) => {
   try {
+    console.log('Received mentorship request:', {
+      mentorId: req.params.id,
+      menteeId: req.user._id,
+      message: req.body.message
+    });
+
+    // Check if user is trying to request themselves
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ message: "You cannot request mentorship from yourself" });
+    }
+
     const mentor = await User.findOne({
       _id: req.params.id,
       role: "mentor"
@@ -200,15 +231,52 @@ router.post("/:id/request", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "This mentor is currently unavailable" });
     }
 
-    // Check if there's already a pending request
+    // Check for existing requests
     const existingRequest = await MentorshipRequest.findOne({
       mentee: req.user._id,
       mentor: mentor._id,
-      status: "pending"
+      status: { $in: ['pending', 'accepted'] }
     });
 
     if (existingRequest) {
-      return res.status(400).json({ message: "You already have a pending request with this mentor" });
+      console.log('Found existing request:', existingRequest);
+      return res.status(400).json({ 
+        message: existingRequest.status === 'pending' 
+          ? "You already have a pending request with this mentor" 
+          : "You are already connected with this mentor" 
+      });
+    }
+
+    // Check if there was a previous rejected request
+    const previousRequest = await MentorshipRequest.findOne({
+      mentee: req.user._id,
+      mentor: mentor._id,
+      status: 'rejected'
+    });
+
+    if (previousRequest) {
+      // Update the existing request instead of creating a new one
+      previousRequest.status = 'pending';
+      previousRequest.message = req.body.message || "I would like to request mentorship";
+      previousRequest.createdAt = new Date();
+      await previousRequest.save();
+      await previousRequest.populate('mentee', 'name email profileImage');
+      
+      console.log('Updated previous request to pending:', previousRequest);
+
+      // Emit socket event to notify mentor
+      if (global.io) {
+        global.io.to(`user_${mentor._id}`).emit('newMentorshipRequest', {
+          request: previousRequest,
+          mentee: previousRequest.mentee
+        });
+        console.log('Socket event emitted to mentor:', mentor._id);
+      }
+
+      return res.status(200).json({ 
+        message: "Mentorship request sent successfully", 
+        request: previousRequest 
+      });
     }
 
     // Create new request
@@ -218,11 +286,36 @@ router.post("/:id/request", authMiddleware, async (req, res) => {
       message: req.body.message || "I would like to request mentorship"
     });
 
+    console.log('Creating new request:', request);
     await request.save();
-    res.json({ message: "Mentorship request sent successfully", request });
+    await request.populate('mentee', 'name email profileImage');
+
+    console.log('Request created successfully:', request);
+
+    // Emit socket event to notify mentor
+    if (global.io) {
+      global.io.to(`user_${mentor._id}`).emit('newMentorshipRequest', {
+        request,
+        mentee: request.mentee
+      });
+      console.log('Socket event emitted to mentor:', mentor._id);
+    }
+
+    res.status(201).json({ 
+      message: "Mentorship request sent successfully", 
+      request 
+    });
   } catch (error) {
     console.error("Error sending request:", error);
-    res.status(500).json({ message: "Error sending request", error: error.message });
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: "You already have a pending request with this mentor" 
+      });
+    }
+    res.status(500).json({ 
+      message: "Error sending request", 
+      error: error.message 
+    });
   }
 });
 
