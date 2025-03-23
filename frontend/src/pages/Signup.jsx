@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 // Professional titles with categories
 const professionalTitles = {
@@ -50,7 +51,7 @@ const experienceLevels = [
 ];
 
 const Signup = () => {
-  const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -118,7 +119,20 @@ const Signup = () => {
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email format";
     
     if (!formData.password) newErrors.password = "Password is required";
-    else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    else {
+      const passwordValidation = [];
+      if (formData.password.length < 8) passwordValidation.push("Password must be at least 8 characters");
+      if (formData.password.length > 100) passwordValidation.push("Password must not exceed 100 characters");
+      if (!/[A-Z]/.test(formData.password)) passwordValidation.push("Password must contain at least one uppercase letter");
+      if (!/[a-z]/.test(formData.password)) passwordValidation.push("Password must contain at least one lowercase letter");
+      if (!/\d{2,}/.test(formData.password)) passwordValidation.push("Password must contain at least 2 digits");
+      if (/\s/.test(formData.password)) passwordValidation.push("Password must not contain spaces");
+      if (!/[!@#$%^&*(),.?":{}|<>]{2,}/.test(formData.password)) passwordValidation.push("Password must contain at least 2 special characters");
+      
+      if (passwordValidation.length > 0) {
+        newErrors.password = passwordValidation.join(", ");
+      }
+    }
     
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
@@ -185,17 +199,16 @@ const Signup = () => {
 
       console.log("Sending data to server:", JSON.stringify(dataToSend, null, 2));
 
-      const response = await axios.post("http://localhost:5000/api/auth/signup", dataToSend);
+      const response = await api.post("/api/auth/signup", dataToSend);
       
       console.log("Server response:", response.data);
 
       if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate(formData.role === "mentor" ? "/mentor-dashboard" : "/dashboard");
+        // Use the login function from AuthContext to handle session management
+        await login(response.data.user, response.data.token);
       }
     } catch (err) {
-      console.error("Signup error:", err.response?.data || err);
+      console.error("Signup error:", err);
       
       // Clear any previous errors
       setErrors({});
@@ -206,7 +219,12 @@ const Signup = () => {
           const backendErrors = {};
           Object.entries(err.response.data.errors).forEach(([field, error]) => {
             if (error) {
-              backendErrors[field] = error;
+              // If the error is an array (from password validation), join them
+              if (Array.isArray(error)) {
+                backendErrors[field] = error.join(", ");
+              } else {
+                backendErrors[field] = error;
+              }
             }
           });
           setErrors(backendErrors);

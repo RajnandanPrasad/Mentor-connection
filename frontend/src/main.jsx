@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { SocketProvider } from './context/SocketContext'
+import { BrowserRouter } from 'react-router-dom'
 
 console.log('main.jsx is executing'); // Debug log
 
@@ -26,9 +27,11 @@ try {
   
   root.render(
     <React.StrictMode>
-      <SocketProvider>
-        <App />
-      </SocketProvider>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <SocketProvider>
+          <App />
+        </SocketProvider>
+      </BrowserRouter>
     </React.StrictMode>
   );
   console.log('App rendered successfully'); // Debug log

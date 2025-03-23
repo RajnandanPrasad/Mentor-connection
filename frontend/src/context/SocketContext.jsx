@@ -16,10 +16,14 @@ export const SocketProvider = ({ children }) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+      console.log('No token found in session storage, skipping socket connection');
+      return;
+    }
 
-    const socketInstance = io('http://localhost:5000', {
+    console.log('Initializing socket connection...');
+    const socketInstance = io(import.meta.env.VITE_API_URL, {
       auth: { token }
     });
 
@@ -40,6 +44,7 @@ export const SocketProvider = ({ children }) => {
     setSocket(socketInstance);
 
     return () => {
+      console.log('Cleaning up socket connection');
       socketInstance.disconnect();
     };
   }, []);

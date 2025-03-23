@@ -2,18 +2,18 @@ import React from 'react';
 import { FaCheck, FaCheckDouble } from 'react-icons/fa';
 
 const MessageStatus = ({ message, currentUserId }) => {
-  const isOwnMessage = message.sender._id === currentUserId;
+  const isOwnMessage = message.sender === currentUserId;
   
   if (!isOwnMessage) return null;
 
+  const isRead = message.readBy && message.readBy.length > 0;
+  
   return (
-    <span className="message-status">
-      {message.readBy.length > 1 ? (
-        <FaCheckDouble className="text-blue-500" />
-      ) : message.delivered ? (
-        <FaCheck className="text-gray-500" />
+    <span className="ml-1">
+      {isRead ? (
+        <FaCheckDouble className="text-blue-300" />
       ) : (
-        <FaCheck className="text-gray-300" />
+        <FaCheck className="text-gray-400" />
       )}
     </span>
   );

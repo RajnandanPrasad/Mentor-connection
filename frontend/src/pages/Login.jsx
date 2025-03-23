@@ -1,39 +1,121 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 const Login = () => {
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [retryAfter, setRetryAfter] = useState(0);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const user = JSON.parse(sessionStorage.getItem('user'));
+      if (user?.role === 'mentor') {
+        navigate('/mentor-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (retryAfter <= 0) return;
+
+    const timer = setInterval(() => {
+      setRetryAfter(prev => {
+        if (prev <= 1) {
+          setError("");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [retryAfter]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (error && !retryAfter) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent submission if rate limited
+    if (retryAfter > 0) {
+      setError(`Please wait ${retryAfter} seconds before trying again`);
+      return;
+    }
+
     setError("");
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", formData);
-      login(response.data.user, response.data.token);
+      // Ensure email and password are trimmed
+      const loginData = {
+        email: formData.email.trim(),
+        password: formData.password
+      };
+
+      console.log('Login: Attempting login with email:', loginData.email);
       
-      // Redirect based on role
-      if (response.data.user.role === "mentor") {
-        navigate("/mentor-dashboard");
-      } else {
-        navigate("/dashboard");
+      const response = await api.post("/api/auth/login", loginData);
+      console.log('Login: Server response received:', {
+        hasToken: !!response.data.token,
+        hasSessionId: !!response.data.sessionId,
+        hasUser: !!response.data.user,
+        userRole: response.data.user?.role
+      });
+      
+      if (!response.data.token || !response.data.sessionId || !response.data.user) {
+        console.error('Login: Invalid response structure:', {
+          hasToken: !!response.data.token,
+          hasSessionId: !!response.data.sessionId,
+          hasUser: !!response.data.user
+        });
+        throw new Error("Invalid response from server");
       }
+
+      console.log('Login: Valid response, calling login function');
+      await login(response.data.user, response.data.token, response.data.sessionId);
+      
+      console.log('Login: Login successful, auth state should be updated');
+      
     } catch (err) {
-      setError(err.response?.data?.message || "An error occurred during login");
+      console.error("Login: Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        headers: err.response?.headers
+      });
+
+      if (err.response?.status === 429) {
+        // Get retry-after header, default to 30 seconds if not provided
+        const retryAfterHeader = err.response.headers?.['retry-after'] || '30';
+        const waitSeconds = parseInt(retryAfterHeader, 10);
+        setRetryAfter(waitSeconds);
+        setError(`Too many login attempts. Please wait ${waitSeconds} seconds before trying again.`);
+      } else if (err.response?.status === 401) {
+        setError("Invalid email or password");
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.response?.data?.errors) {
+        const errorMessages = Object.values(err.response.data.errors).join(", ");
+        setError(errorMessages);
+      } else {
+        setError("An error occurred during login. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -91,6 +173,11 @@ const Login = () => {
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
               {error}
+              {retryAfter > 0 && (
+                <div className="mt-2 text-sm">
+                  You can try again in {retryAfter} seconds
+                </div>
+              )}
             </div>
           )}
 
@@ -127,10 +214,10 @@ const Login = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || retryAfter > 0}
               className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Signing in..." : retryAfter > 0 ? `Try again in ${retryAfter}s` : "Sign In"}
             </button>
           </form>
 

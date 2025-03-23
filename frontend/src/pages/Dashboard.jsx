@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 import SkillAssessment from "../components/SkillAssessment/SkillAssessment";
 import Achievement from "../components/Achievement/Achievement";
 import RecommendationService from "../services/RecommendationService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuth();
   const [achievements, setAchievements] = useState([]);
   const [recommendedMentors, setRecommendedMentors] = useState([]);
   const [showSkillAssessment, setShowSkillAssessment] = useState(false);
@@ -19,22 +20,20 @@ const Dashboard = () => {
   ];
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("user"));
-    if (!userData) {
+    if (!user) {
       navigate("/login");
       return;
     }
 
     // Redirect mentors to mentor dashboard
-    if (userData.role === "mentor") {
+    if (user.role === "mentor") {
       navigate("/mentor-dashboard");
       return;
     }
 
-    setUser(userData);
     fetchAchievements();
     fetchRecommendations();
-  }, [navigate]);
+  }, [user, navigate]);
 
   const fetchAchievements = async () => {
     // Mock achievements data - replace with API call
@@ -74,9 +73,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
+    logout();
   };
 
   if (!user) return null;

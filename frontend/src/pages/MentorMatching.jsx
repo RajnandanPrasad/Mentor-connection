@@ -4,8 +4,12 @@ import axios from 'axios';
 import MentorCard from '../components/MentorCard';
 import SearchFilters from '../components/SearchFilters';
 import RequestMentorshipModal from '../components/RequestMentorshipModal';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const MentorMatching = () => {
+  const navigate = useNavigate();
+  const { user, token } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [mentors, setMentors] = useState([]);
@@ -21,62 +25,82 @@ const MentorMatching = () => {
     expertise: ''
   });
 
-  // Fetch mentors from backend
+  useEffect(() => {
+    if (!user || user.role !== 'mentee') {
+      navigate('/dashboard');
+      return;
+    }
+
+    // Add debounce to avoid too many API calls
+    const timeoutId = setTimeout(() => {
+      fetchMentors();
+    }, 300); // Wait 300ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, user, navigate]);
+
   const fetchMentors = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedSkills.length > 0) params.append('skills', selectedSkills.join(','));
-      
-      // Add filter parameters
-      if (filters.experienceRange) params.append('experienceRange', filters.experienceRange);
-      if (filters.hourlyRate) params.append('hourlyRate', filters.hourlyRate);
-      if (filters.availability) params.append('availability', 'true');
-      if (filters.rating) params.append('rating', filters.rating);
-      if (filters.expertise) params.append('expertise', filters.expertise);
-
-      console.log('Fetching mentors with params:', Object.fromEntries(params));
-      
-      const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('No authentication token found');
+        console.error("No authentication token found");
+        navigate('/login');
+        return;
       }
 
-      const response = await axios.get(`http://localhost:5000/api/mentors?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      let url = "http://localhost:5000/api/mentors";
+      const queryParams = new URLSearchParams();
+
+      if (searchTerm) {
+        queryParams.append('search', searchTerm);
+      }
+      if (selectedSkills.length > 0) {
+        queryParams.append('skills', selectedSkills.join(','));
+      }
+      if (filters.experienceRange) {
+        queryParams.append('experienceRange', filters.experienceRange);
+      }
+      if (filters.hourlyRate) {
+        queryParams.append('hourlyRate', filters.hourlyRate);
+      }
+      if (filters.availability) {
+        queryParams.append('availability', 'true');
+      }
+      if (filters.rating) {
+        queryParams.append('rating', filters.rating);
+      }
+      if (filters.expertise) {
+        queryParams.append('expertise', filters.expertise);
+      }
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      console.log('Fetching mentors with URL:', url);
+      console.log('Using token:', token);
+
+      const response = await axios.get(url, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
-      
-      console.log('Response from server:', response.data);
-      
-      if (!Array.isArray(response.data)) {
-        console.error('Invalid response format:', response.data);
-        throw new Error('Invalid response format from server');
-      }
 
+      console.log('Mentors response:', response.data);
       setMentors(response.data);
       setError(null);
     } catch (err) {
-      console.error('Error fetching mentors:', err);
-      console.error('Error response:', err.response?.data);
-      setError(err.response?.data?.message || 'Failed to fetch mentors. Please try again later.');
-      setMentors([]);
+      console.error("Error fetching mentors:", err);
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        setError(err.response?.data?.message || "Failed to load mentors. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
   };
-
-  // Fetch mentors when search, filters, or selected skills change
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchMentors();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchTerm, selectedSkills, filters]);
 
   const handleSkillToggle = (skillId) => {
     setSelectedSkills(prev =>
@@ -97,7 +121,6 @@ const MentorMatching = () => {
 
   const handleSubmitRequest = async (message) => {
     try {
-      const token = localStorage.getItem('token');
       if (!token) {
         alert('Please log in to request mentorship');
         return;
