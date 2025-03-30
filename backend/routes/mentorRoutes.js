@@ -58,17 +58,7 @@ router.get('/:mentorId', async (req, res) => {
 router.use(authMiddleware);
 
 // Get mentor reviews
-router.get('/:mentorId/reviews', async (req, res) => {
-  try {
-    const reviews = await Review.find({ mentorId: req.params.mentorId })
-      .populate('userId', 'name profileImage')
-      .sort({ createdAt: -1 });
-    res.json(reviews);
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    res.status(500).json({ message: 'Error fetching reviews' });
-  }
-});
+
 
 // Upload mentor image
 router.post('/:mentorId/upload-image', upload.single('image'), async (req, res) => {

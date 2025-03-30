@@ -1,64 +1,143 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const MentorshipRequests = ({ onRequestUpdate }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const { socket, isConnected } = useSocket(); // Use the socket from context
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedMentee, setSelectedMentee] = useState(null);
+  const [processingRequestId, setProcessingRequestId] = useState(null);
+  
+  const apiUrl = import.meta.env.VITE_API_URL || '';
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+    
+    // Use socket from SocketContext instead of creating a new one
+    if (socket) {
+      socket.on('requestStatusUpdated', (data) => {
+        console.log('Request status updated:', data);
+        fetchRequests();
+        if (onRequestUpdate) {
+          onRequestUpdate();
+        }
+      });
+
+      return () => {
+        socket.off('requestStatusUpdated');
+      };
+    }
+  }, [socket, token]);
 
   const fetchRequests = async () => {
     try {
+      setLoading(true);
       console.log('Fetching mentorship requests...');
+      console.log('Using API URL:', apiUrl);
+      console.log('Using token:', token ? 'Token exists' : 'No token');
+      
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/mentors/requests`,
+        `${apiUrl}/api/mentors/requests`,
         {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }
       );
+      
+      console.log('API Response status:', response.status);
       console.log('Received requests:', response.data);
+      
       setRequests(response.data);
+      setError(null);
     } catch (error) {
       console.error('Error fetching requests:', error);
+      
+      // Detailed error logging
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      
       setError('Failed to fetch requests');
-      toast.error('Failed to fetch requests');
+      toast.error('Failed to fetch requests: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRequestAction = async (requestId, status) => {
+  const handleRequestAction = async (requestId, menteeId, action) => {
     try {
-      console.log(`Processing request ${requestId} with status: ${status}`);
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/mentors/requests/${requestId}`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      console.log('Request action response:', response.data);
-
-      toast.success(`Request ${status} successfully`);
-      fetchRequests();
-      if (onRequestUpdate) {
-        console.log('Calling onRequestUpdate callback');
-        onRequestUpdate();
+      if (!socket || !socket.connected) {
+        console.error('Socket not connected. Cannot update request status.');
+        toast.error('Connection error. Please try again later.');
+        return;
       }
+
+      const newStatus = action === 'accept' ? 'accepted' : 'rejected';
+      
+      let rejectionDetails = null;
+      
+      // If rejecting, prompt for a reason
+      if (newStatus === 'rejected') {
+        const reason = prompt('Please provide a reason for declining this request (optional):');
+        if (reason) {
+          rejectionDetails = { reason };
+        }
+      }
+      
+      // Update status in the database
+      axios.put(`${apiUrl}/api/mentors/requests/${requestId}`, { status: newStatus }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+        .then(response => {
+          // Update local state
+          setRequests(prevRequests => 
+            prevRequests.map(req => 
+              req._id === requestId ? { ...req, status: newStatus } : req
+            )
+          );
+          
+          // Show success message
+          toast.success(`Request ${action === 'accept' ? 'accepted' : 'rejected'} successfully`);
+          
+          // Emit socket event to notify mentee
+          if (socket && socket.connected) {
+            console.log(`Emitting requestStatusUpdated event for mentee ${menteeId}`);
+            socket.emit('requestStatusUpdated', { 
+              requestId, 
+              status: newStatus, 
+              menteeId,
+              rejectionDetails,
+              mentorName: user?.name || 'your mentor'
+            });
+          } else {
+            console.error('Socket not connected when trying to emit requestStatusUpdated event');
+          }
+        })
+        .catch(error => {
+          console.error('Error updating request status:', error);
+          toast.error('Failed to update request status: ' + error.message);
+        });
     } catch (error) {
       console.error('Error handling request:', error);
-      toast.error('Failed to process request');
+      
+      // Detailed error logging
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      
+      toast.error(error.response?.data?.message || `Failed to process request: ${error.message}`);
     }
   };
 
@@ -102,6 +181,7 @@ const MentorshipRequests = ({ onRequestUpdate }) => {
             <div>
               <h3 className="font-semibold">{request.mentee.name}</h3>
               <p className="text-sm text-gray-600">{request.mentee.email}</p>
+              <p className="text-xs text-gray-400">ID: {request.mentee._id}</p>
             </div>
           </div>
 
@@ -115,14 +195,24 @@ const MentorshipRequests = ({ onRequestUpdate }) => {
 
           <div className="mt-6 flex space-x-4">
             <button
-              onClick={() => handleRequestAction(request._id, 'accepted')}
-              className="flex-1 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+              onClick={() => handleRequestAction(request._id, request.mentee._id, 'accept')}
+              disabled={processingRequestId === request._id}
+              className={`flex-1 ${
+                processingRequestId === request._id 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-500 hover:bg-green-600'
+              } text-white py-2 px-4 rounded transition duration-200`}
             >
-              Accept
+              {processingRequestId === request._id ? 'Processing...' : 'Accept'}
             </button>
             <button
-              onClick={() => handleRequestAction(request._id, 'rejected')}
-              className="flex-1 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition duration-200"
+              onClick={() => handleRequestAction(request._id, request.mentee._id, 'reject')}
+              disabled={processingRequestId === request._id}
+              className={`flex-1 ${
+                processingRequestId === request._id 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-red-500 hover:bg-red-600'
+              } text-white py-2 px-4 rounded transition duration-200`}
             >
               Reject
             </button>

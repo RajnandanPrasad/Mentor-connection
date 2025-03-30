@@ -34,6 +34,67 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
+  const updateUserData = (updatedUserData) => {
+    try {
+      console.log('AuthContext: Updating user data:', updatedUserData);
+      
+      // Validate that we have the minimum required fields
+      if (!updatedUserData || !updatedUserData._id) {
+        console.error('AuthContext: Invalid user data for update - missing ID');
+        return false;
+      }
+      
+      // Get current user data from sessionStorage to compare
+      const currentUserStr = sessionStorage.getItem('user');
+      if (!currentUserStr) {
+        console.error('AuthContext: No existing user data in sessionStorage');
+        return false;
+      }
+      
+      let currentUser;
+      try {
+        currentUser = JSON.parse(currentUserStr);
+      } catch (parseError) {
+        console.error('AuthContext: Error parsing current user data:', parseError);
+        return false;
+      }
+      
+      // Ensure role consistency
+      if (currentUser.role !== updatedUserData.role) {
+        console.warn(`AuthContext: Role mismatch - current: ${currentUser.role}, updated: ${updatedUserData.role}`);
+        // Preserve the original role
+        updatedUserData.role = currentUser.role;
+      }
+      
+      // Special handling for mentor profiles
+      if (updatedUserData.role === 'mentor') {
+        console.log('AuthContext: Applying special handling for mentor profile update');
+        
+        // Preserve any critical mentor-specific fields that may not be in the updated data
+        if (currentUser.mentorProfile && (!updatedUserData.mentorProfile || Object.keys(updatedUserData.mentorProfile).length === 0)) {
+          console.log('AuthContext: Preserving mentorProfile data from current user');
+          updatedUserData.mentorProfile = currentUser.mentorProfile;
+        }
+      }
+      
+      // Store updated data
+      const serializedData = JSON.stringify(updatedUserData);
+      sessionStorage.setItem('user', serializedData);
+      
+      // Update the auth state
+      updateAuthState({
+        ...auth,
+        user: updatedUserData
+      });
+      
+      console.log('AuthContext: User data updated successfully');
+      return true;
+    } catch (error) {
+      console.error('AuthContext: Update user data error:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     
@@ -42,21 +103,30 @@ export const AuthProvider = ({ children }) => {
         console.log('AuthContext: Initializing auth...');
         // Check for existing token and user data in sessionStorage
         const token = sessionStorage.getItem('token');
-        const user = JSON.parse(sessionStorage.getItem('user') || 'null');
+        const userStr = sessionStorage.getItem('user');
         const sessionId = sessionStorage.getItem('sessionId');
         
         console.log('AuthContext: Found session data:', {
           hasToken: !!token,
-          hasUser: !!user,
-          hasSessionId: !!sessionId,
-          userRole: user?.role
+          hasUser: !!userStr,
+          hasSessionId: !!sessionId
         });
         
-        if (!token || !user || !sessionId) {
+        if (!token || !userStr || !sessionId) {
           console.log('AuthContext: Missing session data');
           if (isMounted) {
             updateAuthState(prev => ({ ...prev, loading: false }));
           }
+          return;
+        }
+
+        // Parse user data
+        let user;
+        try {
+          user = JSON.parse(userStr);
+        } catch (error) {
+          console.error('AuthContext: Error parsing user data:', error);
+          clearAuthData();
           return;
         }
 
@@ -75,10 +145,13 @@ export const AuthProvider = ({ children }) => {
           if (response.data.valid) {
             // Verify session ID matches
             if (response.data.sessionId === sessionId) {
-              console.log('AuthContext: Session valid, updating state with user role:', user.role);
+              console.log('AuthContext: Session valid, updating state with user:', user);
               updateAuthState({
                 isAuthenticated: true,
-                user,
+                user: {
+                  ...user,
+                  _id: user._id || user.id // Ensure _id is available
+                },
                 token,
                 loading: false,
                 sessionId
@@ -102,76 +175,78 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
 
-    // Listen for storage events from other tabs
+    // Listen for storage changes in other tabs
     const handleStorageChange = (e) => {
       if (e.key === 'token' || e.key === 'user' || e.key === 'sessionId') {
-        if (e.newValue === null && isMounted) {
-          clearAuthData();
-        }
+        initializeAuth();
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
+
     return () => {
       isMounted = false;
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [navigate]);
+  }, []);
 
   const login = async (userData, token, sessionId) => {
     try {
-      console.log('AuthContext: Starting login process', {
-        userData,
-        hasToken: !!token,
-        hasSessionId: !!sessionId,
-        userRole: userData?.role
-      });
-
-      // Store data in sessionStorage first
+      console.log('AuthContext: Logging in user:', userData);
+      // Store auth data in sessionStorage
       sessionStorage.setItem('token', token);
       sessionStorage.setItem('user', JSON.stringify(userData));
       sessionStorage.setItem('sessionId', sessionId);
 
-      // Then update auth state
+      // Update auth state
       updateAuthState({
         isAuthenticated: true,
-        user: userData,
+        user: {
+          ...userData,
+          _id: userData._id || userData.id // Ensure _id is available
+        },
         token,
         loading: false,
         sessionId
       });
 
-      console.log('AuthContext: Auth state updated, navigating based on role:', userData.role);
-      // Navigate based on role
-      if (userData.role === 'mentor') {
-        console.log('AuthContext: Navigating to mentor dashboard');
-        navigate('/mentor-dashboard');
-      } else {
-        console.log('AuthContext: Navigating to mentee dashboard');
-        navigate('/dashboard');
-      }
+      return true;
     } catch (error) {
       console.error('AuthContext: Login error:', error);
       clearAuthData();
-      throw error;
+      return false;
     }
   };
 
   const logout = async () => {
     try {
-      console.log('AuthContext: Logging out');
-      clearAuthData();
+      // Call logout endpoint if needed
+      if (auth.token) {
+        await api.post('/api/auth/logout', null, {
+          headers: {
+            'Authorization': `Bearer ${auth.token}`,
+            'x-session-id': auth.sessionId
+          }
+        });
+      }
     } catch (error) {
       console.error('AuthContext: Logout error:', error);
-      throw error;
+    } finally {
+      clearAuthData();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ ...auth, login, logout }}>
+    <AuthContext.Provider value={{ ...auth, login, logout, updateAuthState, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext); 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}; 

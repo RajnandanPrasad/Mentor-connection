@@ -61,27 +61,26 @@ const handleUpload = (req, res, next) => {
 // Create a new task
 router.post('/', authMiddleware, handleUpload, async (req, res) => {
   try {
-    const { title, description, menteeId, dueDate, priority } = req.body;
-    
-    // Verify that the mentee exists and is connected to the mentor
-    const mentee = await User.findById(menteeId);
-    if (!mentee) {
-      return res.status(404).json({ message: 'Mentee not found' });
-    }
-
+    const { title, description, dueDate, priority, menteeId, goalId } = req.body;
     const task = new Task({
       title,
       description,
-      menteeId,
-      mentorId: req.user._id,
       dueDate,
-      priority
+      priority,
+      mentorId: req.user._id,
+      menteeId,
+      goalId: goalId || null,
+      status: 'pending'
     });
-
     await task.save();
     
-    // Populate task with mentee and mentor details
-    await task.populate('menteeId mentorId', 'name email');
+    // If socket.io is available and there's a goalId, emit task created event
+    if (req.io && goalId) {
+      req.io.to(`user_${menteeId}`).emit('taskCreated', {
+        task,
+        goalId
+      });
+    }
     
     res.status(201).json(task);
   } catch (error) {
@@ -98,6 +97,7 @@ router.get('/mentee/:menteeId', authMiddleware, async (req, res) => {
       mentorId: req.user._id
     })
     .populate('menteeId mentorId', 'name email')
+    .populate('goalId', 'title')
     .sort({ createdAt: -1 });
     
     res.json(tasks);
@@ -112,8 +112,25 @@ router.get('/mentor', authMiddleware, async (req, res) => {
   try {
     const tasks = await Task.find({ mentorId: req.user._id })
       .populate('menteeId mentorId', 'name email')
+      .populate('goalId', 'title')
       .sort({ createdAt: -1 });
     
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({ message: 'Error fetching tasks' });
+  }
+});
+
+// Get tasks for a specific mentor and mentee
+router.get('/mentor/:mentorId/mentee/:menteeId', authMiddleware, async (req, res) => {
+  try {
+    const tasks = await Task.find({
+      mentorId: req.params.mentorId,
+      menteeId: req.params.menteeId
+    })
+    .populate('goalId', 'title')
+    .sort({ createdAt: -1 });
     res.json(tasks);
   } catch (error) {
     console.error('Error fetching tasks:', error);
@@ -124,20 +141,70 @@ router.get('/mentor', authMiddleware, async (req, res) => {
 // Update task status
 router.patch('/:taskId', authMiddleware, async (req, res) => {
   try {
-    const { status } = req.body;
-    const task = await Task.findOne({
-      _id: req.params.taskId,
-      mentorId: req.user._id
-    });
-
+    const task = await Task.findById(req.params.taskId);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    task.status = status;
+    // Verify that the user is the mentor who created the task
+    if (task.mentorId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this task' });
+    }
+
+    task.status = req.body.status;
     await task.save();
     
-    await task.populate('menteeId mentorId', 'name email');
+    // If the task is linked to a goal and socket is available, emit task updated event
+    if (req.io && task.goalId) {
+      req.io.to(`user_${task.menteeId}`).emit('taskUpdated', {
+        taskId: task._id,
+        status: task.status,
+        goalId: task.goalId
+      });
+    }
+    
+    res.json(task);
+  } catch (error) {
+    console.error('Error updating task:', error);
+    res.status(500).json({ message: 'Error updating task' });
+  }
+});
+
+// Update a task (full update)
+router.put('/:taskId', authMiddleware, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Verify that the user is the mentor who created the task
+    if (task.mentorId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this task' });
+    }
+
+    const { title, description, dueDate, priority, status, goalId } = req.body;
+    
+    // Update task fields
+    if (title) task.title = title;
+    if (description) task.description = description;
+    if (dueDate) task.dueDate = dueDate;
+    if (priority) task.priority = priority;
+    if (status) task.status = status;
+    
+    // Handle goalId changes - can be set to null to unlink
+    task.goalId = goalId === undefined ? task.goalId : goalId;
+    
+    await task.save();
+    
+    // Emit task updated event if socket is available
+    if (req.io) {
+      req.io.to(`user_${task.menteeId}`).emit('taskUpdated', {
+        taskId: task._id,
+        updates: req.body,
+        goalId: task.goalId
+      });
+    }
     
     res.json(task);
   } catch (error) {
@@ -149,15 +216,17 @@ router.patch('/:taskId', authMiddleware, async (req, res) => {
 // Delete a task
 router.delete('/:taskId', authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({
-      _id: req.params.taskId,
-      mentorId: req.user._id
-    });
-
+    const task = await Task.findById(req.params.taskId);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    // Verify that the user is the mentor who created the task
+    if (task.mentorId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this task' });
+    }
+
+    await task.remove();
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     console.error('Error deleting task:', error);

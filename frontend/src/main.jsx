@@ -1,45 +1,55 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
-import { SocketProvider } from './context/SocketContext'
-import { BrowserRouter } from 'react-router-dom'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
+import { SocketProvider } from './context/SocketContext';
+import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter } from 'react-router-dom';
+import { CometChat } from "@cometchat-pro/chat";
 
-console.log('main.jsx is executing'); // Debug log
+const appID = "2723800d667b3393"; // Replace with your CometChat App ID
+const region = "in"; // Replace with your CometChat region
 
-const rootElement = document.getElementById('root');
-console.log('Root element:', rootElement); // Debug log
+const initCometChat = async () => {
+  try {
+    await CometChat.init(appID, { region });
+    console.log("✅ CometChat Initialized Successfully");
+  } catch (error) {
+    console.error("❌ CometChat Initialization Failed", error);
+  }
+};
 
-if (!rootElement) {
-  console.error('Root element not found!');
-  throw new Error('Root element not found');
-}
+// Start CometChat initialization before rendering the app
+initCometChat().then(() => {
+  console.log("🔄 Rendering App...");
 
-// Remove the loading message if it exists
-const loadingElement = document.getElementById('loading');
-if (loadingElement) {
-  loadingElement.remove();
-}
+  const rootElement = document.getElementById('root');
+  if (!rootElement) {
+    console.error('❌ Root element not found!');
+    throw new Error('Root element not found');
+  }
 
-try {
-  console.log('Attempting to render app...'); // Debug log
-  const root = ReactDOM.createRoot(rootElement);
-  
-  root.render(
-    <React.StrictMode>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <SocketProvider>
-          <App />
-        </SocketProvider>
-      </BrowserRouter>
-    </React.StrictMode>
-  );
-  console.log('App rendered successfully'); // Debug log
-} catch (error) {
-  console.error('Failed to render app:', error);
-  rootElement.innerHTML = `
-    <div style="color: red; padding: 20px;">
-      Error loading application. Please check console for details.
-    </div>
-  `;
-}
+  try {
+    const root = ReactDOM.createRoot(rootElement);
+    
+    root.render(
+      <React.StrictMode>
+        <BrowserRouter>
+          <AuthProvider>
+            <SocketProvider>
+              <App />
+            </SocketProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </React.StrictMode>
+    );
+    console.log('✅ App rendered successfully');
+  } catch (error) {
+    console.error('❌ Failed to render app:', error);
+    rootElement.innerHTML = `
+      <div style="color: red; padding: 20px;">
+        ⚠️ Error loading application. Please check console for details.
+      </div>
+    `;
+  }
+});

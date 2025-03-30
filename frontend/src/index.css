@@ -4,24 +4,95 @@
 
 @layer base {
   html {
-    @apply h-full bg-gray-50;
+    @apply h-full bg-neutral-50;
   }
   body {
-    @apply h-full;
+    @apply h-full font-sans text-neutral-800;
   }
   #root {
     @apply h-full;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-neutral-900;
+  }
+  
+  a {
+    @apply text-primary-600 hover:text-primary-700 transition-colors;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-soft hover:shadow-button focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
   .btn-primary {
-    @apply bg-blue-500 text-white hover:bg-blue-600;
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
   }
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+    @apply bg-secondary-500 text-white hover:bg-secondary-600 focus:ring-secondary-400;
   }
+  .btn-accent {
+    @apply bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-400;
+  }
+  .btn-outline {
+    @apply bg-transparent border-2 border-primary-500 text-primary-600 hover:bg-primary-50;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl p-6 shadow-card transition-shadow hover:shadow-lg;
+  }
+  
+  .form-input {
+    @apply w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+  }
+  
+  .badge {
+    @apply px-2.5 py-0.5 text-xs font-medium rounded-full;
+  }
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800;
+  }
+  .badge-secondary {
+    @apply bg-secondary-100 text-secondary-800;
+  }
+  .badge-accent {
+    @apply bg-accent-100 text-accent-800;
+  }
+}
+
+/* Add animation for notification banners */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Gradient backgrounds */
+.bg-gradient-primary {
+  @apply bg-gradient-to-r from-primary-600 to-primary-700;
+}
+
+.bg-gradient-secondary {
+  @apply bg-gradient-to-r from-secondary-500 to-primary-500;
+}
+
+.bg-gradient-accent {
+  @apply bg-gradient-to-r from-accent-500 to-primary-500;
+}
+
+.bg-gradient-card {
+  @apply bg-gradient-to-br from-white to-neutral-50;
+}
+
+/* Advanced UI elements */
+.glassmorphism {
+  @apply bg-white/70 backdrop-blur-md border border-white/50 shadow-soft;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500;
 }

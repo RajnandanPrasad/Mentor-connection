@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { useToast } from "../components/ui/toast";
+import { Card, CardContent } from "../components/ui/card";
 
 // Professional titles with categories
 const professionalTitles = {
@@ -52,6 +56,8 @@ const experienceLevels = [
 
 const Signup = () => {
   const { login } = useAuth();
+  const navigate = useNavigate();
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -203,9 +209,20 @@ const Signup = () => {
       
       console.log("Server response:", response.data);
 
-      if (response.data.token) {
+      if (response.data.token && response.data.user) {
         // Use the login function from AuthContext to handle session management
         await login(response.data.user, response.data.token);
+        
+        addToast(`Account created successfully! Welcome to MentorConnect.`, "success");
+        
+        // Redirect based on role
+        if (response.data.user.role === 'mentor') {
+          navigate('/mentor-dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (err) {
       console.error("Signup error:", err);
@@ -246,247 +263,285 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full mx-auto space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Join our community as a {formData.role}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-neutral-900">Create your MentorConnect Account</h1>
+          <p className="mt-2 text-neutral-600">Join our community to connect with mentors and grow your skills</p>
         </div>
 
-        {errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-md p-4">
-            {errors.submit}
-          </div>
-        )}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex flex-wrap">
+              {/* Role Selection */}
+              <div className="w-full">
+                <div className="flex rounded-t-xl">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, role: "mentee" }))}
+                    className={`w-1/2 py-4 text-center font-medium transition-colors ${
+                      formData.role === "mentee"
+                        ? "bg-primary-600 text-white"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
+                  >
+                    <span className="flex items-center justify-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Join as Mentee
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, role: "mentor" }))}
+                    className={`w-1/2 py-4 text-center font-medium transition-colors ${
+                      formData.role === "mentor"
+                        ? "bg-secondary-500 text-white"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
+                  >
+                    <span className="flex items-center justify-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      Join as Mentor
+                    </span>
+                  </button>
+                </div>
+              </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6 bg-white p-6 rounded-lg shadow-md">
-          <div className="space-y-6">
-            {/* Role Selection */}
-            <div className="flex justify-center space-x-4">
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, role: "mentee" }))}
-                className={`px-6 py-2 rounded-full ${
-                  formData.role === "mentee"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                Mentee
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, role: "mentor" }))}
-                className={`px-6 py-2 rounded-full ${
-                  formData.role === "mentor"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                Mentor
-              </button>
-            </div>
+              {/* Form Content */}
+              <div className="w-full p-8">
+                {errors.submit && (
+                  <div className="mb-6 p-4 bg-error-50 border border-error-200 text-error-700 rounded-lg animate-fadeIn">
+                    {errors.submit}
+                  </div>
+                )}
 
-            {/* Basic Information */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
-          <input
-            type="text"
-            name="name"
-                value={formData.name}
-            onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-blue-500 focus:border-blue-500`}
-          />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
-            </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Basic Info Section */}
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-neutral-900">Basic Information</h2>
+                    
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-1">
+                        Full Name
+                      </label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="Enter your full name"
+                        error={errors.name}
+                        icon={
+                          <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        }
+                      />
+                    </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-          <input
-            type="email"
-            name="email"
-                value={formData.email}
-            onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-blue-500 focus:border-blue-500`}
-          />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">
+                        Email Address
+                      </label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="Enter your email address"
+                        error={errors.email}
+                        icon={
+                          <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        }
+                      />
+                    </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-          <input
-            type="password"
-            name="password"
-                value={formData.password}
-            onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm ${
-                  errors.password ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-blue-500 focus:border-blue-500`}
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-            </div>
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-1">
+                        Password
+                      </label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Create a strong password"
+                        error={errors.password}
+                        icon={
+                          <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        }
+                      />
+                    </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm ${
-                  errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-blue-500 focus:border-blue-500`}
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
-            </div>
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-neutral-700 mb-1">
+                        Confirm Password
+                      </label>
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        placeholder="Re-enter your password"
+                        error={errors.confirmPassword}
+                        icon={
+                          <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                        }
+                      />
+                    </div>
+                  </div>
 
-            {/* Mentor-specific fields */}
-            {formData.role === "mentor" && (
-              <>
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Professional Title {formData.role === "mentor" && <span className="text-red-500">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    value={titleSearch}
-                    onChange={(e) => {
-                      setTitleSearch(e.target.value);
-                      setFormData(prev => ({
-                        ...prev,
-                        title: e.target.value
-                      }));
-                    }}
-                    placeholder="Search or enter your title"
-                    className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.title ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-blue-500 focus:border-blue-500`}
-                  />
-                  {showTitleDropdown && filteredTitles.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-auto">
-                      {filteredTitles.map((title) => (
-                        <div
-                          key={title}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => handleTitleSelect(title)}
-                        >
-                          {title}
+                  {/* Mentor-specific fields */}
+                  {formData.role === "mentor" && (
+                    <div className="space-y-4 pt-4 border-t border-neutral-200">
+                      <h2 className="text-xl font-semibold text-neutral-900">Mentor Profile</h2>
+                      
+                      <div>
+                        <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">
+                          Professional Title
+                        </label>
+                        <div className="relative">
+                          <Input
+                            id="title"
+                            name="titleSearch"
+                            value={titleSearch}
+                            onChange={(e) => setTitleSearch(e.target.value)}
+                            placeholder="e.g. Software Engineer, UX Designer"
+                            error={errors.title}
+                            icon={
+                              <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            }
+                          />
+
+                          {showTitleDropdown && filteredTitles.length > 0 && (
+                            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-lg py-1 text-base overflow-auto focus:outline-none sm:text-sm">
+                              {filteredTitles.map((title, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() => handleTitleSelect(title)}
+                                  className="cursor-pointer select-none relative py-2 pl-10 pr-4 hover:bg-primary-50"
+                                >
+                                  <span className="block truncate">{title}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      </div>
+
+                      <div>
+                        <label htmlFor="experienceLevel" className="block text-sm font-medium text-neutral-700 mb-1">
+                          Experience Level
+                        </label>
+                        <select
+                          id="experienceLevel"
+                          name="experienceLevel"
+                          value={formData.experienceLevel}
+                          onChange={handleChange}
+                          className={`w-full rounded-lg border ${errors.experienceLevel ? 'border-error-300 focus:ring-error-500 focus:border-error-500' : 'border-neutral-300 focus:ring-primary-500 focus:border-primary-500'} h-10 px-4 py-2 bg-white text-neutral-800 focus:outline-none focus:ring-2 transition-all`}
+                        >
+                          <option value="">Select your experience level</option>
+                          {experienceLevels.map((level) => (
+                            <option key={level.value} value={level.value}>
+                              {level.label}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.experienceLevel && (
+                          <p className="mt-1 text-sm text-error-500">{errors.experienceLevel}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="location" className="block text-sm font-medium text-neutral-700 mb-1">
+                          Location (Optional)
+                        </label>
+                        <Input
+                          id="location"
+                          name="location"
+                          value={formData.location}
+                          onChange={handleChange}
+                          placeholder="e.g. London, UK or Remote"
+                          icon={
+                            <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="bio" className="block text-sm font-medium text-neutral-700 mb-1">
+                          Professional Bio
+                        </label>
+                        <textarea
+                          id="bio"
+                          name="bio"
+                          rows={4}
+                          value={formData.bio}
+                          onChange={handleChange}
+                          placeholder="Write a brief description of your experience, skills, and what you can offer as a mentor..."
+                          className={`w-full rounded-lg border ${errors.bio ? 'border-error-300 focus:ring-error-500 focus:border-error-500' : 'border-neutral-300 focus:ring-primary-500 focus:border-primary-500'} px-4 py-2 bg-white text-neutral-800 focus:outline-none focus:ring-2 transition-all`}
+                        />
+                        {errors.bio ? (
+                          <p className="mt-1 text-sm text-error-500">{errors.bio}</p>
+                        ) : (
+                          <p className="mt-1 text-sm text-neutral-500">Minimum 50 characters required. Currently: {formData.bio.length} characters</p>
+                        )}
+                      </div>
                     </div>
                   )}
-                  {errors.title && (
-                    <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Experience Level {formData.role === "mentor" && <span className="text-red-500">*</span>}
-                  </label>
-                  <select
-                    name="experienceLevel"
-                    value={formData.experienceLevel}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.experienceLevel ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-blue-500 focus:border-blue-500`}
-                  >
-                    <option value="">Select experience level</option>
-                    {experienceLevels.map((level) => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.experienceLevel && (
-                    <p className="mt-1 text-sm text-red-600">{errors.experienceLevel}</p>
-                  )}
-                </div>
+                  <div className="pt-4">
+                    <Button
+                      type="submit"
+                      className="w-full py-3"
+                      variant={formData.role === "mentor" ? "secondary" : "default"}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <div className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Creating Account...
+                        </div>
+                      ) : (
+                        `Create ${formData.role === "mentor" ? "Mentor" : "Mentee"} Account`
+                      )}
+                    </Button>
+                  </div>
+                </form>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Bio {formData.role === "mentor" && <span className="text-red-500">*</span>}
-                    <span className="text-sm text-gray-500 ml-1">(minimum 50 characters)</span>
-                  </label>
-              <textarea
-                name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows="4"
-                    className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.bio ? 'border-red-300' : 'border-gray-300'
-                    } focus:ring-blue-500 focus:border-blue-500`}
-                    placeholder="Tell us about your experience and expertise..."
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    {formData.bio.length}/50 characters
+                <div className="mt-6 text-center">
+                  <p className="text-neutral-600">
+                    Already have an account?{" "}
+                    <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                      Sign in
+                    </Link>
                   </p>
-                  {errors.bio && (
-                    <p className="mt-1 text-sm text-red-600">{errors.bio}</p>
-                  )}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Location (optional)
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                onChange={handleChange}
-                    className="mt-1 block w-full rounded-md shadow-sm border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g. New York, USA"
-                  />
-                </div>
-            </>
-          )}
-          </div>
-
-          <div>
-          <button
-            type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-              {loading ? "Creating account..." : "Create Account"}
-          </button>
-          </div>
-        </form>
-
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-          Already have an account?{" "}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </Link>
-          </p>
-        </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

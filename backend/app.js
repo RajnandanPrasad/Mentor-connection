@@ -8,6 +8,10 @@ const connectionRoutes = require('./routes/connections');
 const taskRoutes = require('./routes/tasks');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const chatRoutes = require('./routes/chatRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
 
 dotenv.config();
 
@@ -54,6 +58,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/mentors', mentorRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -48,7 +48,7 @@ const Home = () => {
   const topMentors = [
     {
       id: 1,
-      name: "Sarah Johnson",
+      name: "Ayush Kumar",
       title: "Senior Software Engineer at Google",
       experience: "8 years",
       rating: 4.9,
@@ -56,7 +56,7 @@ const Home = () => {
     },
     {
       id: 2,
-      name: "Michael Chen",
+      name: "Akhil Pandey",
       title: "AI Research Scientist at Microsoft",
       experience: "10 years",
       rating: 4.8,
@@ -64,7 +64,7 @@ const Home = () => {
     },
     {
       id: 3,
-      name: "Emily Rodriguez",
+      name: "DR Mukul Sharma",
       title: "Product Manager at Amazon",
       experience: "7 years",
       rating: 4.9,
@@ -132,7 +132,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Navigation */}
-      <nav className="bg-gradient-to-r from-blue-600 to-indigo-600 sticky top-0 z-50 shadow-lg">
+      <nav className="bg-gradient-to-r from-primary-600 to-primary-800 sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
@@ -148,13 +148,13 @@ const Home = () => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate("/login")}
-                className="px-4 py-2 text-white hover:text-blue-100 font-medium transition-colors"
+                className="px-4 py-2 text-white hover:text-primary-100 font-medium transition-colors"
               >
                 Login
               </button>
               <button
                 onClick={() => navigate("/signup")}
-                className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium transition-all shadow-md hover:shadow-lg"
+                className="px-4 py-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 font-medium transition-all shadow-md hover:shadow-lg"
               >
                 Sign Up
               </button>
@@ -164,9 +164,9 @@ const Home = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600">
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:60px_60px]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-600/50 to-transparent" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-primary-800">
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-[size:20px_20px] opacity-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary-900/50 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
@@ -176,13 +176,13 @@ const Home = () => {
                 transition={{ duration: 0.5 }}
                 className="text-5xl md:text-6xl font-bold text-white mb-6"
               >
-                Find Your Perfect Mentor
+                Find Your Perfect <span className="text-gradient">Mentor</span>
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-xl text-blue-100 mb-8"
+                className="text-xl text-primary-100 mb-8"
               >
                 Connect with industry professionals and get career guidance
               </motion.p>
@@ -193,8 +193,8 @@ const Home = () => {
                 className="flex flex-col sm:flex-row justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4"
               >
                 <button
-                  onClick={() => navigate("/find-mentor")}
-                  className="px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                  onClick={() => navigate("/mentor-matching")}
+                  className="px-8 py-3 bg-white text-primary-600 rounded-lg hover:bg-primary-50 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 >
                   Find a Mentor
                 </button>
@@ -224,7 +224,7 @@ const Home = () => {
                   <source src="/introvideo1.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-600/20 to-primary-800/20" />
                 
                 {/* Video Controls */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-center space-x-4 bg-gradient-to-t from-black/50 to-transparent">
@@ -249,7 +249,7 @@ const Home = () => {
                   >
                     {isMuted ? (
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                       </svg>
                     ) : (
@@ -293,7 +293,7 @@ const Home = () => {
                 Smart Mentor Matching
               </h3>
               <p className="text-gray-600 text-center leading-relaxed">
-                AI-powered recommendations based on your skills and career goals
+                recommendations based on your skills and career goals
               </p>
             </motion.div>
             <motion.div 
@@ -438,7 +438,7 @@ const Home = () => {
               Discover Top Mentors
             </h2>
             <button
-              onClick={() => navigate("/find-mentor")}
+              onClick={() => navigate("/mentor-matching")}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Explore All
@@ -470,7 +470,7 @@ const Home = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate("/find-mentor")}
+                  onClick={() => navigate("/mentor-matching")}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Book a Session

@@ -14,7 +14,7 @@ const chatSchema = new mongoose.Schema(
     },
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
+      ref: "Message", // Ensure you create a Message.js model
     },
     status: {
       type: String,
@@ -31,7 +31,7 @@ const chatSchema = new mongoose.Schema(
 
 // Ensure mentor and mentee are different users
 chatSchema.pre("validate", function(next) {
-  if (this.mentor.toString() === this.mentee.toString()) {
+  if (this.mentor.equals(this.mentee)) {
     next(new Error("Mentor and mentee cannot be the same user"));
   } else {
     next();
@@ -44,4 +44,4 @@ chatSchema.index({ status: 1 });
 chatSchema.index({ lastMessage: 1 });
 
 const Chat = mongoose.model("Chat", chatSchema);
-module.exports = Chat; 
+module.exports = Chat;

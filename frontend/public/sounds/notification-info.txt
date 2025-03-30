@@ -1,0 +1,39 @@
+# Notification Sounds for the Mentorship Application
+
+This directory contains notification sounds for the mentorship application.
+
+## Getting a Notification Sound
+
+There are three ways to add notification sounds to your application:
+
+1. **Use the built-in Sound Generator:** 
+   - Open `/sounds/get-notification-sound.html` in your browser
+   - Choose or customize a notification sound
+   - Download it as `notification.mp3` and save it in this directory
+
+2. **Download a notification sound from the web:**
+   - Find a royalty-free notification sound from one of these sources:
+     - https://mixkit.co/free-sound-effects/notification/
+     - https://notificationsounds.com/notification-sounds
+     - https://www.zapsplat.com/sound-effect-category/notifications-and-prompts/
+   - Download and rename it to `notification.mp3` in this directory
+
+3. **Use the fallback sound:**
+   - The application will automatically generate a fallback sound if `notification.mp3` is missing
+   - This ensures notifications will always have a sound, even without an audio file
+
+## Sound File Requirements
+
+- The sound file should be short (less than 3 seconds)
+- It should be saved as an MP3 file
+- It should be named `notification.mp3` exactly
+- It should be placed in the `frontend/public/sounds` directory
+
+## Testing Sounds
+
+You can test if your notification sounds are working by:
+1. Using the "Test Accept" or "Test Reject" buttons on the mentee dashboard
+2. Using the "Test Notification" button in the Chat Debugger
+3. Triggering a real notification by having a mentor accept/reject your request
+
+If you don't hear any sound, check the browser console for error messages. 
