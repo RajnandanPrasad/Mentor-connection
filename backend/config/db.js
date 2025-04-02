@@ -1,11 +1,19 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    console.log('Attempting to connect to MongoDB...');
-    const conn = await mongoose.connect('mongodb://localhost:27017/mentor_db', {
+    console.log('Attempting to connect to MongoDB Atlas...');
+    
+    const mongoURI = process.env.MONGO_URI;
+    
+    if (!mongoURI) {
+      throw new Error('MongoDB URI is not defined in environment variables');
+    }
+    
+    const conn = await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -26,4 +34,4 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB; 
+module.exports = connectDB;
